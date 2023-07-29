@@ -20,7 +20,8 @@ const origin_url=process.env.ORIGIN_URL
 const base_url=process.env.BASE_URL
 
 //here we need to mention these parameters to allows cors to use cookies/credentials to be saved in the session.
-app.use(cors({credentials:true,origin:"https://dulcet-crepe-aceba4.netlify.app"}))
+// app.use(cors({credentials:true,origin:"https://dulcet-crepe-aceba4.netlify.app"}))
+app.use(cors({credentials:true,origin:origin_url}))
 
 //parse the json request in the endpoint call get,post.
 app.use(express.json())
@@ -103,6 +104,7 @@ app.post('/login',async (req,res)=>{
 
 //we will use this get request to know if a user is logged in or not by accessing the token from the cookie. If it is a valid token then that particular user is logged in.
 app.get('/profile',(req,res)=>{
+    // console.log("profile");
     const {token}=req.cookies
     // console.log(token);
     //we are replacing the token with empty string ('') . so to avoid and error while fetching user profile we are placing an 'if' condition.
