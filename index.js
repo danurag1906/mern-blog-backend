@@ -9,8 +9,6 @@ const jwt=require('jsonwebtoken')
 const secret='jncaqjnqoi3u928bfew8932'
 const cookieparser=require('cookie-parser')
 const app = express()
-const multer=require('multer')
-const uploadMiddleware=multer({dest:'uploads/'}) //we will save all our file uploads in this folder.
 const fs=require('fs')
 const dotenv=require('dotenv')
 dotenv.config()
@@ -18,6 +16,38 @@ const db_url=process.env.DATABASE_URL
 const port=process.env.PORT || 4000
 const origin_url=process.env.ORIGIN_URL
 const base_url=process.env.BASE_URL
+const multer=require('multer')
+const { GridFsStorage } = require("multer-gridfs-storage")
+// Create a storage object with a given configuration
+// const storage = new GridFsStorage({
+//     url:db_url,
+//     file: (req, file) => {
+//       //If it is an image, save to photos bucket
+//       if (file.mimetype === "image/jpeg" || file.mimetype === "image/png") {
+//         return {
+//           bucketName: "photos",
+//           filename: `${Date.now()}_${file.originalname}`,
+//         }
+//       } else {
+//         //Otherwise save to default bucket
+//         return `${Date.now()}_${file.originalname}`
+//       }
+//     },
+//   })
+
+const storage=multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads')
+  },
+  filename: function (req, file, cb) {
+    // const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, `${Date.now()}_${file.originalname}`)
+  }
+})
+
+// const uploadMiddleware=multer({dest:'uploads/'}) //we will save all our file uploads in this folder.
+const uploadMiddleware=multer({storage:storage}) //we will save all our file uploads in this folder.
+
 
 //here we need to mention these parameters to allows cors to use cookies/credentials to be saved in the session.
 app.use(cors({credentials:true,origin:origin_url}))
@@ -75,6 +105,11 @@ app.post('/login',async (req,res)=>{
     const userDoc=await user.findOne({username})
     // console.log(userDoc);
 
+    if(userDoc==null){
+      res.status(400).json("no user found")
+      return
+    }
+
     //comparing the user entered password with the one in database.
 
     const passwordOk=bcrypt.compareSync(password,userDoc.password)
@@ -124,13 +159,13 @@ app.post('/logout',(req,res)=>{
 })
 
 
-//get all the post data from createPost.js and send it to 'post' collection in db
+// get all the post data from createPost.js and send it to 'post' collection in db
 app.post('/post',uploadMiddleware.single('files'),async (req,res)=>{
-    const {originalname,path}=req.file
-    const parts=originalname.split('.')
-    const ext=parts[parts.length-1]
-    const newPath=path+'.'+ext
-    fs.renameSync(path,newPath)
+    // const {originalname,path}=req.file
+    // const parts=originalname.split('.')
+    // const ext=parts[parts.length-1]
+    // const newPath=path+'.'+ext
+    // fs.renameSync(path,newPath)
 
     //cheking if the token is valid. If so then we will grab all the data from clinet side from req.file and then change the file name and add extension to it.
     const {token}=req.cookies
@@ -141,26 +176,34 @@ app.post('/post',uploadMiddleware.single('files'),async (req,res)=>{
             title,
             summary,
             content,
-            cover:newPath,
+            cover:req.file.path,
             author:info.id,
             //we are getting user info from the client side while including the credentials . Then we are linking the user id to the post that is being created via author:info.id 
         })
         res.json(postDoc)
+        // console.log(postDoc);
         // res.json(info)
     })
-
     
 })
+
+  
 
 app.put('/post',uploadMiddleware.single('files'),async (req,res)=>{
     let newPath=''
     if(req.file){
-        const {originalname,path}=req.file
-        const parts=originalname.split('.')
-        const ext=parts[parts.length-1]
-        const newPath=path+'.'+ext
-        fs.renameSync(path,newPath)
+      newPath=req.file.path
     }
+    // if(req.file){
+    //     const {originalname,path}=req.file
+    //     const parts=originalname.split('.')
+    //     const ext=parts[parts.length-1]
+    //     const newPath=path+'.'+ext
+    //     fs.renameSync(path,newPath)
+    //     // const {path}=req.file
+    //     // const newPath=req.file.path
+    //     // fs.renameSync(path,newPath)
+    // }
 
     const {token}=req.cookies
     jwt.verify(token,secret,{},async(err,info)=>{
@@ -180,20 +223,27 @@ app.put('/post',uploadMiddleware.single('files'),async (req,res)=>{
                 title,
                 summary,
                 content,
+                // cover:req.file.path
                 cover: newPath ? newPath : postDoc.cover,
               },
             },
             { new: true }
           );
 
+          // Remove the existing file from the server's upload folder if a new file is being set
+          if (newPath && postDoc.cover) {
+            fs.unlinkSync(postDoc.cover);
+          }
+
         res.json(postDoc)
 
     })
 
 })
+  
 
 
-//extra feature by me.
+// //extra feature by me.
 app.delete('/post/:id',async (req,res)=>{
     const {token}=req.cookies;
     jwt.verify(token,secret,{},async(err,info)=>{
@@ -209,23 +259,36 @@ app.delete('/post/:id',async (req,res)=>{
 
         await post.deleteOne({_id:postId})
 
+        //to remove the file from uploads to avoid garbage.
+        const filePathToDelete=postDoc.cover
+        if(filePathToDelete){
+          fs.unlinkSync(filePathToDelete)
+        }
+
         res.json('post deleted successfully')
 
     })
 })
 
-//here we get all the posts and these posts are sent back to client i.e, AllPosts.js
+  
+
+// //here we get all the posts and these posts are sent back to client i.e, AllPosts.js
 app.get('/posts',async(req,res)=>{
     res.send(await post.find().populate('author',['username']).sort({createdAt:-1}))
     //by pouplating we are also able to send the username of that particular author(user) to display it on the client side.
 })
-
 
 app.get('/post/:id',async(req,res)=>{
     const {id} =req.params
     const postDoc=await post.findById(id).populate('author',['username'])
     res.json(postDoc)
 })
+  
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).send('Something went wrong!');
+});
 
 // mongoose.connect('mongodb+srv://mern-blog:mern-blog@cluster0.ooxjrbw.mongodb.net/?retryWrites=true&w=majority', { useNewUrlParser: true, useUnifiedTopology: true })
 //   .then(() => {
@@ -245,7 +308,5 @@ app.get('/post/:id',async(req,res)=>{
 //     console.error('Failed to connect to MongoDB:', error);
 //   });
 
-
-//mongodb+srv://mern-blog:mern-blog@cluster0.ooxjrbw.mongodb.net/?retryWrites=true&w=majority
 
 app.listen(port)
