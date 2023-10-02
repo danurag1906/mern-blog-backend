@@ -145,14 +145,15 @@ app.get('/profile',(req,res)=>{
     //we are replacing the token with empty string ('') . so to avoid and error while fetching user profile we are placing an 'if' condition.
     if(token!=''){
         jwt.verify(token,secret,{},(err,info)=>{
-            if (err) throw err
-            res.json(info)
+          if (err) {
+            res.status(401).json({ error: 'Token verification failed' });
+          } else {
+            res.json(info);
+          }
             //here info consits of id,username and iat(issued at)
         })
     }
-    else{
-      res.status(200).json("Not logged in")
-    }
+    
     
 })
 
