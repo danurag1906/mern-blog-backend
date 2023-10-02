@@ -150,6 +150,9 @@ app.get('/profile',(req,res)=>{
             //here info consits of id,username and iat(issued at)
         })
     }
+    else{
+      return
+    }
     
 })
 
