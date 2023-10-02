@@ -50,7 +50,8 @@ const uploadMiddleware=multer({storage:storage}) //we will save all our file upl
 
 
 //here we need to mention these parameters to allows cors to use cookies/credentials to be saved in the session.
-app.use(cors({credentials:true,origin:origin_url}))
+// app.use(cors({credentials:true,origin:"https://dulcet-crepe-aceba4.netlify.app"}))
+app.use(cors({credentials:true,origin:"https://mern-blog-frontend1.onrender.com"}))
 
 //parse the json request in the endpoint call get,post.
 app.use(express.json())
@@ -138,6 +139,7 @@ app.post('/login',async (req,res)=>{
 
 //we will use this get request to know if a user is logged in or not by accessing the token from the cookie. If it is a valid token then that particular user is logged in.
 app.get('/profile',(req,res)=>{
+    // console.log("profile");
     const {token}=req.cookies
     // console.log(token);
     //we are replacing the token with empty string ('') . so to avoid and error while fetching user profile we are placing an 'if' condition.
