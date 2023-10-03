@@ -165,118 +165,182 @@ app.post('/logout',(req,res)=>{
 })
 
 
-// get all the post data from createPost.js and send it to 'post' collection in db
-app.post('/post',uploadMiddleware.single('files'),async (req,res)=>{
-    // const {originalname,path}=req.file
-    // const parts=originalname.split('.')
-    // const ext=parts[parts.length-1]
-    // const newPath=path+'.'+ext
-    // fs.renameSync(path,newPath)
+// // get all the post data from createPost.js and send it to 'post' collection in db
+// app.post('/post',uploadMiddleware.single('files'),async (req,res)=>{
+//     // const {originalname,path}=req.file
+//     // const parts=originalname.split('.')
+//     // const ext=parts[parts.length-1]
+//     // const newPath=path+'.'+ext
+//     // fs.renameSync(path,newPath)
 
-    //cheking if the token is valid. If so then we will grab all the data from clinet side from req.file and then change the file name and add extension to it.
-    const {token}=req.cookies
-    jwt.verify(token,secret,{},async(err,info)=>{
-        if (err) throw err
-        const {title,summary,content}=req.body
-        const postDoc=await post.create({
-            title,
-            summary,
-            content,
-            cover:req.file.path,
-            author:info.id,
-            //we are getting user info from the client side while including the credentials . Then we are linking the user id to the post that is being created via author:info.id 
-        })
-        res.json(postDoc)
-        // console.log(postDoc);
-        // res.json(info)
-    })
+//     //cheking if the token is valid. If so then we will grab all the data from clinet side from req.file and then change the file name and add extension to it.
+//     const {token}=req.cookies
+//     jwt.verify(token,secret,{},async(err,info)=>{
+//         if (err) throw err
+//         const {title,summary,content}=req.body
+//         const postDoc=await post.create({
+//             title,
+//             summary,
+//             content,
+//             cover:req.file.path,
+//             author:info.id,
+//             //we are getting user info from the client side while including the credentials . Then we are linking the user id to the post that is being created via author:info.id 
+//         })
+//         res.json(postDoc)
+//         // console.log(postDoc);
+//         // res.json(info)
+//     })
     
-})
+// })
 
+
+
+// Create a route for posting a new post without token verification
+app.post('/post', uploadMiddleware.single('files'), async (req, res) => {
+    const { title, summary, content } = req.body;
+    const postDoc = await post.create({
+        title,
+        summary,
+        content,
+        cover: req.file.path,
+    });
+    res.json(postDoc);
+});
   
 
-app.put('/post',uploadMiddleware.single('files'),async (req,res)=>{
-    let newPath=''
-    if(req.file){
-      newPath=req.file.path
+// app.put('/post',uploadMiddleware.single('files'),async (req,res)=>{
+//     let newPath=''
+//     if(req.file){
+//       newPath=req.file.path
+//     }
+//     // if(req.file){
+//     //     const {originalname,path}=req.file
+//     //     const parts=originalname.split('.')
+//     //     const ext=parts[parts.length-1]
+//     //     const newPath=path+'.'+ext
+//     //     fs.renameSync(path,newPath)
+//     //     // const {path}=req.file
+//     //     // const newPath=req.file.path
+//     //     // fs.renameSync(path,newPath)
+//     // }
+
+//     const {token}=req.cookies
+//     jwt.verify(token,secret,{},async(err,info)=>{
+//         if (err) throw err
+//         const {id,title,summary,content}=req.body
+//         const postDoc=await post.findById(id)
+//         const isAuthor = JSON.stringify(postDoc.author)===JSON.stringify(info.id)
+//         if(!isAuthor){
+//             return res.status(400).json('you are not the auhtor')
+
+//         }
+
+//         await post.findOneAndUpdate(
+//             { _id: id },
+//             {
+//               $set: {
+//                 title,
+//                 summary,
+//                 content,
+//                 // cover:req.file.path
+//                 cover: newPath ? newPath : postDoc.cover,
+//               },
+//             },
+//             { new: true }
+//           );
+
+//           // Remove the existing file from the server's upload folder if a new file is being set
+//           if (newPath && postDoc.cover) {
+//             fs.unlinkSync(postDoc.cover);
+//           }
+
+//         res.json(postDoc)
+
+//     })
+
+// })
+
+
+// Create a route for updating a post without token verification
+app.put('/post', uploadMiddleware.single('files'), async (req, res) => {
+    let newPath = '';
+    if (req.file) {
+        newPath = req.file.path;
     }
-    // if(req.file){
-    //     const {originalname,path}=req.file
-    //     const parts=originalname.split('.')
-    //     const ext=parts[parts.length-1]
-    //     const newPath=path+'.'+ext
-    //     fs.renameSync(path,newPath)
-    //     // const {path}=req.file
-    //     // const newPath=req.file.path
-    //     // fs.renameSync(path,newPath)
-    // }
 
-    const {token}=req.cookies
-    jwt.verify(token,secret,{},async(err,info)=>{
-        if (err) throw err
-        const {id,title,summary,content}=req.body
-        const postDoc=await post.findById(id)
-        const isAuthor = JSON.stringify(postDoc.author)===JSON.stringify(info.id)
-        if(!isAuthor){
-            return res.status(400).json('you are not the auhtor')
+    const { id, title, summary, content } = req.body;
+    const postDoc = await post.findById(id);
 
-        }
-
-        await post.findOneAndUpdate(
-            { _id: id },
-            {
-              $set: {
+    await post.findOneAndUpdate(
+        { _id: id },
+        {
+            $set: {
                 title,
                 summary,
                 content,
-                // cover:req.file.path
                 cover: newPath ? newPath : postDoc.cover,
-              },
             },
-            { new: true }
-          );
+        },
+        { new: true }
+    );
 
-          // Remove the existing file from the server's upload folder if a new file is being set
-          if (newPath && postDoc.cover) {
-            fs.unlinkSync(postDoc.cover);
-          }
+    if (newPath && postDoc.cover) {
+        fs.unlinkSync(postDoc.cover);
+    }
 
-        res.json(postDoc)
-
-    })
-
-})
+    res.json(postDoc);
+});
   
 
 
 // //extra feature by me.
-app.delete('/post/:id',async (req,res)=>{
-    const {token}=req.cookies;
-    jwt.verify(token,secret,{},async(err,info)=>{
-        if (err) throw err;
+// app.delete('/post/:id',async (req,res)=>{
+//     const {token}=req.cookies;
+//     jwt.verify(token,secret,{},async(err,info)=>{
+//         if (err) throw err;
 
-        const postId=req.params.id
-        const postDoc=await post.findById(postId)
-        // const isAuthor=JSON.stringify(postDoc.author)===JSON.stringify(info.id)
+//         const postId=req.params.id
+//         const postDoc=await post.findById(postId)
+//         // const isAuthor=JSON.stringify(postDoc.author)===JSON.stringify(info.id)
 
-        // if(!isAuthor){
-        //     return res.status(400).json('You are not the author');
-        // }
+//         // if(!isAuthor){
+//         //     return res.status(400).json('You are not the author');
+//         // }
 
-        await post.deleteOne({_id:postId})
+//         await post.deleteOne({_id:postId})
 
-        //to remove the file from uploads to avoid garbage.
-        const filePathToDelete=postDoc.cover
-        if(filePathToDelete){
-          fs.unlinkSync(filePathToDelete)
-        }
+//         //to remove the file from uploads to avoid garbage.
+//         const filePathToDelete=postDoc.cover
+//         if(filePathToDelete){
+//           fs.unlinkSync(filePathToDelete)
+//         }
 
-        res.json('post deleted successfully')
+//         res.json('post deleted successfully')
 
-    })
-})
+//     })
+// })
 
   
+// Create a route for deleting a post without token verification
+app.delete('/post/:id', async (req, res) => {
+    const postId = req.params.id;
+    
+    // You can remove the token verification code entirely
+
+    const postDoc = await post.findById(postId);
+
+    // Remove the file from uploads to avoid garbage.
+    const filePathToDelete = postDoc.cover;
+    if (filePathToDelete) {
+        fs.unlinkSync(filePathToDelete);
+    }
+
+    await post.deleteOne({ _id: postId });
+
+    res.json('Post deleted successfully');
+});
+
+
 
 // //here we get all the posts and these posts are sent back to client i.e, AllPosts.js
 app.get('/posts',async(req,res)=>{
