@@ -124,7 +124,7 @@ app.post('/login',async (req,res)=>{
             if (err) throw err;
             //here we are storing the token in the form of a cookie instead of sending it back as json.
             //this token will help us to identify the user currently logged in.
-            res.cookie('token',token,{ domain: 'https://mern-blogging-frontend.onrender.com', secure: true }).json({
+            res.cookie('token',token,{ path: '/',sameSite: 'None',domain: 'https://mern-blogging-frontend.onrender.com', secure: true }).json({
                 id:userDoc._id,
                 username,
             })
