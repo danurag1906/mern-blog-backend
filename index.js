@@ -51,7 +51,7 @@ const uploadMiddleware=multer({storage:storage}) //we will save all our file upl
 
 //here we need to mention these parameters to allows cors to use cookies/credentials to be saved in the session.
 // app.use(cors({credentials:true,origin:"https://dulcet-crepe-aceba4.netlify.app"}))
-app.use(cors({credentials:true,origin:"*"}))
+app.use(cors({credentials:true,origin:["https://mern-blogging-frontend.onrender.com","https://mern-blogging-backend-urxe.onrender.com"]}))
 
 //parse the json request in the endpoint call get,post.
 app.use(express.json())
